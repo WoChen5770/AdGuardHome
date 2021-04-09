@@ -76,8 +76,8 @@ endef
 
 define Package/adguardhome/install
 	$(call GoPackage/Package/Install/Bin,$(PKG_INSTALL_DIR))
-	$(INSTALL_DIR) $(1)/usr/bin/AdGuardHome
-	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/AdGuardHome $(1)/usr/bin/AdGuardHome/AdGuardHome
+	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR) $(1)/usr/bin/AdGuardHome
 endef
 
 $(eval $(call GoBinPackage,adguardhome))
