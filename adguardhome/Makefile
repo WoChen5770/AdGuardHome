@@ -1,84 +1,86 @@
 #
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
+# Copyright (C) 2019 OpenWrt.org
+#
+# KFERMercer <KFER.Mercer@gmail.com>
+#
+# This is free software, licensed under the GNU General Public License v3.
 #
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=adguardhome
-PKG_VERSION:=0.104.3
+PROJECT_NAME:=AdGuardHome
+PKG_VERSION:=v0.105.2
 PKG_RELEASE:=1
 
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_VERSION:=v$(PKG_VERSION)
-PKG_SOURCE_URL:=https://github.com/AdguardTeam/AdGuardHome
-PKG_MIRROR_HASH:=ec0d48413778267f4ac81091e58a88e5b5ee2f3c1ab48256ded3438bf171d311
-
-PKG_LICENSE:=GPL-3.0-only
-PKG_LICENSE_FILES:=LICENSE.txt
-PKG_MAINTAINER:=Dobroslaw Kijowski <dobo90@gmail.com>
-
-PKG_BUILD_DEPENDS:=golang/host node/host packr/host
-PKG_BUILD_PARALLEL:=1
-PKG_USE_MIPS16:=0
-
-GO_PKG:=github.com/AdguardTeam/AdGuardHome
-GO_PKG_EXCLUDES:=dhcpd/standalone
-GO_PKG_LDFLAGS_X:=main.version=$(PKG_VERSION) main.channel=release main.goarm=$(GO_ARM)
-
 include $(INCLUDE_DIR)/package.mk
-include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk
 
-define Package/adguardhome
-  SECTION:=net
-  CATEGORY:=Network
-  TITLE:=Network-wide ads and trackers blocking DNS server
-  URL:=https://github.com/AdguardTeam/AdGuardHome
-  DEPENDS:=$(GO_ARCH_DEPENDS) +ca-bundle
+define Package/$(PKG_NAME)
+	SECTION:=net
+	CATEGORY:=Network
+	TITLE:=Network-wide ads & trackers blocking DNS server
+	URL:=https://github.com/AdguardTeam/AdGuardHome
 endef
 
-define Package/adguardhome/conffiles
-/etc/config/adguardhome.yaml
+
+define Package/$(PKG_NAME)/description
+Network-wide ads & trackers blocking DNS server
 endef
 
-define Package/adguardhome/description
-Free and open source, powerful network-wide ads and trackers blocking DNS server.
-endef
+STRIP:=true
 
-define Package/$(PKG_NAME)/config
-config ADGUARDHOME_COMPRESS_GOPROXY
-	bool "Compiling with GOPROXY proxy"
-	default n
-
-config ADGUARDHOME_COMPRESS_UPX
-	bool "Compress executable files with UPX"
-	default n
-endef
-
-ifeq ($(CONFIG_ADGUARDHOME_COMPRESS_GOPROXY),y)
-export GO111MODULE=on
-export GOPROXY=https://goproxy.io
+ifeq ($(ARCH),i386)
+	PKG_ARCH_ADGUARDHOME:=386
 endif
+
+ifeq ($(ARCH),x86_64)
+	PKG_ARCH_ADGUARDHOME:=amd64
+endif
+
+ifeq ($(ARCH),mipsel)
+	PKG_ARCH_ADGUARDHOME:=mipsle
+endif
+
+ifeq ($(ARCH),mips)
+	PKG_ARCH_ADGUARDHOME:=mips
+endif
+
+ifeq ($(ARCH),arm)
+	PKG_ARCH_ADGUARDHOME:=armv7
+endif
+
+ifeq ($(ARCH),arm64)
+	PKG_ARCH_ADGUARDHOME:=arm64
+endif
+
+ifeq ($(ARCH),aarch64)
+	PKG_ARCH_ADGUARDHOME:=arm64
+endif
+
+TAR_NAME:=AdGuardHome_linux_$(PKG_ARCH_ADGUARDHOME)
+
+PKG_SOURCE:=$(TAR_NAME).tar.gz
+
+PKG_SOURCE_URL:=https://github.com/AdguardTeam/AdGuardHome/releases/download/$(PKG_VERSION)/
+
+UNTAR_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)/$(PKG_NAME)-extract/$(PKG_ARCH_ADGUARDHOME)
+
+PKG_HASH:=skip
+
+define Build/Prepare
+	mkdir -vp $(UNTAR_DIR)
+	tar -zxvf $(DL_DIR)/$(PKG_SOURCE) -C $(UNTAR_DIR)
+endef
+
+define Build/Configure
+endef
 
 define Build/Compile
-( \
-  cd $(PKG_BUILD_DIR) ; \
-  npm --prefix client ci ; \
-  npm --prefix client run build-prod ; \
-  GOOS=$$$$(go env GOOS) GOARCH=$$$$(go env GOARCH) GO111MODULE=off go get -v github.com/gobuffalo/packr/... ; \
-  "$$$$(go env GOPATH)/bin/packr" -v -z -i $(PKG_BUILD_DIR)/home ; \
-  $(call GoPackage/Build/Compile) ; \
-)
-ifeq ($(CONFIG_ADGUARDHOME_COMPRESS_UPX),y)
-	$(STAGING_DIR_HOST)/bin/upx --lzma --best $(GO_PKG_BUILD_BIN_DIR)/AdGuardHome
-endif
 endef
 
-define Package/adguardhome/install
-	$(call GoPackage/Package/Install/Bin,$(PKG_INSTALL_DIR))
+define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/AdGuardHome $(1)/usr/bin/AdGuardHome
+	$(INSTALL_BIN) $(UNTAR_DIR)/*/$(PROJECT_NAME) $(1)/usr/bin/$(PKG_NAME)
 endef
 
-$(eval $(call GoBinPackage,adguardhome))
-$(eval $(call BuildPackage,adguardhome))
+$(eval $(call BuildPackage,$(PKG_NAME)))
